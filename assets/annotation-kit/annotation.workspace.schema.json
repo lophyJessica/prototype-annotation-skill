@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Vitamin Prototype Annotation Workspace",
+  "type": "object",
+  "required": ["version", "inputs"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "title": { "type": "string" },
+    "inputs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          { "type": "string", "minLength": 1 },
+          {
+            "type": "object",
+            "required": ["config", "scope"],
+            "properties": {
+              "config": { "type": "string", "minLength": 1 },
+              "scope": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+              "order": { "type": "number" }
+            }
+          }
+        ]
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "properties": {
+        "zIndexBase": { "type": "integer", "minimum": 0, "maximum": 2147483000 },
+        "initialMode": { "type": "string", "enum": ["preview", "annotate"] }
+      }
+    },
+    "output": { "type": "string" },
+    "coverage": { "type": "string" },
+    "htmlOutput": { "type": "string" }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "title": "Prototype Annotations",
+  "scope": "example",
+  "sourceBase": ".",
+  "runtime": {
+    "zIndexBase": 2147480000,
+    "initialMode": "preview"
+  },
+  "mermaid": {
+    "enabled": true,
+    "src": "",
+    "options": {}
+  },
+  "sourceRequirements": [
+    {
+      "id": "REQ-EXAMPLE-001",
+      "source": "../business-prd.md#示例需求",
+      "page": "/"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "1",
+      "page": "/",
+      "moduleName": "示例模块",
+      "target": {
+        "selector": "[data-anno='example-module']",
+        "fallbackSelectors": []
+      },
+      "markdownFile": "",
+      "blockId": "1",
+      "sourceRefs": ["REQ-EXAMPLE-001"],
+      "markdown": "## 业务定义\n- 在这里填写模块业务说明。\n\n## 交互规则\n- 在这里填写点击、跳转、状态、异常等规则。"
+    }
+  ]
+}
