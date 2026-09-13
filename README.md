@@ -46,6 +46,68 @@ tests/                          编译脚本测试
 → 浏览器验收徽章、面板和定位
 ```
 
+## 快速上手（具体用法）
+
+下面几步把本 Skill（编译工具 + runtime + 校验）接进你自己的原型项目。**前提：你已有可运行的 React/Vue/静态 HTML 原型，且有 PRD/字段清单/业务规则**（没有则只能读方法论）。
+
+### 1. 安装 runtime 资产
+把 runtime.js / runtime.css / config / schema 拷进你项目的静态资源目录（Vite 通常是 `public/annotation-kit`）：
+```bash
+python3 <本skill目录>/scripts/install_annotation_kit.py <你的前端目录> \
+  --public-path annotation-kit \
+  --base-href ./annotation-kit \
+  --inject --html <你的前端目录>/index.html
+```
+- 不想自动改 HTML 就去掉 `--inject`，按 `references/integration-patterns.md` 手动加两行：
+  ```html
+  <link rel="stylesheet" href="./annotation-kit/runtime.css">
+  <script type="module" src="./annotation-kit/runtime.js"></script>
+  ```
+- Vite 项目用 `/annotation-kit`（public 资产）作 `--base-href`；静态站用相对 `./annotation-kit`。
+
+### 2. 给页面加定位锚点
+在需要标注的页面元素上加 `data-anno`（按功能区/表单区，尽量少，**不要逐字段**）：
+```html
+<section data-anno="basic-info"><!-- 基本信息区 --></section>
+```
+- 表单区/功能区 → 局部锚点；**整页级通用规则**（防重提交、未保存离开、页面准入、失败重试）→ 用 `page-global`，**不加锚点**。
+
+### 3. 写标注
+在 `<注释源>/annotations/pages/<page>.md` 里，用 `anno:start / anno:end` 注释包裹的 Markdown 写标注，每块含：
+- `### 页面内容` / `### 交互说明` / `### 业务规则` / `### 字段说明` / `### 待确认` 五个小节；
+- **字段说明用四列表格**：`字段 | 展示/输入类型 | 业务说明 | 约束与备注`；
+- 覆盖字段级 / 页面级 / 业务级 / 系统级（见 `references/annotation-scope.md`）；
+- 整页通用规则单独一个 `page-global` 块。
+同时在 `annotations/annotation.config.json` 登记每页（引用 sourceRequirements、锚点 target、区块类型与顺序）。**详细格式 → `references/annotation-authoring.md`。**
+
+### 4. 编译
+```bash
+# 单模块
+python3 scripts/compile_annotations.py <模块>/annotation.config.json [--output <bundle路径>]
+# 多模块（用 workspace 聚合，别手工合并 config）
+python3 scripts/compile_annotations.py 需求文档与规则/annotation.workspace.json \
+  --output public/annotation-kit/annotation.bundle.json
+```
+产物：`annotation.bundle.json`（放 runtime 同目录）。
+
+### 5. 自动校验
+```bash
+python3 scripts/check_annotation_assets.py public/annotation-kit
+```
+期望输出 coverage 全映射、`unmapped: 0`（校验 bundle 完整性 / 无重复 id / markdown 已内联 / target 齐全 / coverage 存在）。
+
+### 6. 浏览器验收
+启动你的原型（如 `npm run dev`）：
+1. 页面出现标注入口（区域序号/徽章）；
+2. 点序号弹 6-tab 详情（页面内容/交互说明/业务规则/字段说明/待确认）；
+3. 整页通用规则走 `page-global`，防重提交/未保存离开/准入有记录；
+4. 各锚点命中。
+**编译通过 ≠ 浏览器能看到**（build≠运行态），一定以打开页面实测为准。
+
+### 修改与维护
+- 说明文字不对 → 改 `annotations/*.md` 重编译；挂错区域 → 改 config/锚点；规则不对 → 回 PRD 确认。
+- **不直接改 `annotation.bundle.json`**（下一轮编译会覆盖）。
+
 ## 重要原则
 
 - 标注面向业务方和评审者，优先使用业务语言；
@@ -100,27 +162,6 @@ tests/                          编译脚本测试
 ```
 
 如果没有已有原型项目、PRD 和业务规则，这个仓库只能用于阅读方法论和参考实现，不能单独产生完整的标注页面。
-
-
-```bash
-git clone https://github.com/lophyJessica/prototype-annotation-skill.git
-```
-
-### 2. 阅读主 Skill
-
-```text
-打开 SKILL.md，按其中的初始化、编写、编译、验收流程执行。
-```
-
-### 3. 编译标注
-
-在目标项目中，根据 Skill 和项目自身的目录结构执行：
-
-```bash
-python prototype-annotation/scripts/compile_annotations.py
-```
-
-具体参数以目标项目的配置和脚本帮助为准，不要直接假设所有项目的路径完全相同。
 
 ## 项目接入边界
 
