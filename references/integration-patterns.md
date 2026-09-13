@@ -59,7 +59,7 @@ If only `dist/` or exported static files exist, copy `annotation-kit/` into that
 Add `data-anno` only when needed:
 
 ```jsx
-<section data-anno="product-filter-bar">
+<section data-anno="module-filter-bar">
   ...
 </section>
 ```

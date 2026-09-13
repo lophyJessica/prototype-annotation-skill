@@ -24,8 +24,8 @@ def config(scope: str = "") -> dict:
         "sourceRequirements": [{"id": "REQ-1", "source": "prd.md#rule"}],
         "annotations": [{
             "id": "1",
-            "moduleName": "商品列表",
-            "target": {"selector": "[data-anno='product-list']"},
+            "moduleName": "记录列表",
+            "target": {"selector": "[data-anno='record-list']"},
             "sourceRefs": ["REQ-1"],
             "markdown": "## 业务规则\n\n- 支持**查询**。",
         }],
@@ -33,52 +33,62 @@ def config(scope: str = "") -> dict:
 
 
 class CompilerTests(unittest.TestCase):
+    def test_page_global_annotation_gets_empty_target(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "annotation.config.json"
+            value = config("module-a")
+            value["annotations"][0].update({"type": "page-global", "target": {}})
+            write_json(path, value)
+            bundle, errors, _ = MODULE.compile_config(path)
+            self.assertEqual(errors, [])
+            self.assertEqual(bundle["annotations"][0]["target"]["selector"], "")
+
     def test_single_config_remains_supported(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "annotation.config.json"
-            write_json(path, config("product"))
+            write_json(path, config("module-a"))
             bundle, errors, coverage = MODULE.compile_config(path)
             self.assertEqual(errors, [])
-            self.assertEqual(bundle["annotations"][0]["key"], "product:1")
+            self.assertEqual(bundle["annotations"][0]["key"], "module-a:1")
             self.assertEqual(coverage[0]["status"], "mapped")
 
     def test_workspace_allows_same_display_id_in_different_scopes(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            write_json(root / "product.json", config())
-            write_json(root / "purchase.json", config())
+            write_json(root / "module-a.json", config())
+            write_json(root / "module-b.json", config())
             workspace = root / "annotation.workspace.json"
             write_json(workspace, {
                 "version": 1,
                 "inputs": [
-                    {"scope": "product", "config": "product.json"},
-                    {"scope": "purchase", "config": "purchase.json"},
+                    {"scope": "module-a", "config": "module-a.json"},
+                    {"scope": "module-b", "config": "module-b.json"},
                 ],
             })
             bundle, errors, _, _ = MODULE.compile_workspace(workspace)
             self.assertEqual(errors, [])
             self.assertEqual([item["id"] for item in bundle["annotations"]], ["1", "1"])
-            self.assertEqual({item["key"] for item in bundle["annotations"]}, {"product:1", "purchase:1"})
+            self.assertEqual({item["key"] for item in bundle["annotations"]}, {"module-a:1", "module-b:1"})
 
     def test_duplicate_runtime_key_fails(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "annotation.config.json"
-            value = config("product")
+            value = config("module-a")
             duplicate = dict(value["annotations"][0])
-            duplicate.update({"id": "2", "key": "product:1"})
+            duplicate.update({"id": "2", "key": "module-a:1"})
             value["annotations"].append(duplicate)
             write_json(path, value)
             _, errors, _ = MODULE.compile_config(path)
-            self.assertIn("duplicate annotation key: product:1", "\n".join(errors))
+            self.assertIn("duplicate annotation key: module-a:1", "\n".join(errors))
 
     def test_html_output_renders_markdown(self):
         rendered = MODULE.html_document({
             "title": "标注",
             "annotations": [{
                 "id": "1",
-                "key": "product:1",
-                "scope": "product",
-                "moduleName": "商品列表",
+                "key": "module-a:1",
+                "scope": "module-a",
+                "moduleName": "记录列表",
                 "markdown": "## 业务规则\n\n- 支持**查询**。",
             }],
         })
@@ -89,7 +99,7 @@ class CompilerTests(unittest.TestCase):
     def test_runtime_initial_mode_is_preserved_and_declared(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "annotation.config.json"
-            value = config("product")
+            value = config("module-a")
             value["runtime"] = {"initialMode": "annotate"}
             write_json(path, value)
             bundle, errors, _ = MODULE.compile_config(path)

@@ -10,15 +10,19 @@ from typing import Optional
 SCOPE_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
-def extract_block(markdown: str, block_id: str) -> str:
+def extract_block(markdown: str, block_id: str) -> tuple[str, dict]:
     escaped = re.escape(str(block_id))
     pattern = re.compile(
-        rf"<!--\s*anno:start\s+id=[\"']?{escaped}[\"']?[^>]*-->([\s\S]*?)"
+        rf"<!--\s*anno:start\s+id=[\"']?{escaped}[\"']?([^>]*)-->([\s\S]*?)"
         rf"<!--\s*anno:end\s+id=[\"']?{escaped}[\"']?\s*-->",
         re.IGNORECASE,
     )
     match = pattern.search(markdown)
-    return match.group(1).strip() if match else ""
+    if not match:
+        return "", {}
+    attr_str = match.group(1)
+    attrs = dict(re.findall(r'(\w+)=["\']?([^"\'\s>]+)["\']?', attr_str))
+    return match.group(2).strip(), attrs
 
 
 def resolve_source(config_path: Path, config: dict, markdown_file: str) -> Path:
@@ -71,12 +75,9 @@ def compile_config(config_path: Path, allow_unmapped: bool = False, scope_overri
             continue
         seen_page_ids.add(page_id)
 
-        selector = annotation.get("target", {}).get("selector", "").strip()
-        if not selector:
-            errors.append(f"{config_path}: annotation {annotation_id} is missing target.selector")
-
         markdown = annotation.get("markdown", "")
         markdown_file = annotation.get("markdownFile", "").strip()
+        block_attrs = {}
         if markdown_file:
             try:
                 source_path = resolve_source(config_path, config, markdown_file)
@@ -84,13 +85,26 @@ def compile_config(config_path: Path, allow_unmapped: bool = False, scope_overri
                     errors.append(f"annotation {annotation_id} markdown file not found: {source_path}")
                 else:
                     source_text = source_path.read_text(encoding="utf-8")
-                    markdown = extract_block(source_text, annotation.get("blockId", annotation_id))
+                    markdown, block_attrs = extract_block(source_text, annotation.get("blockId", annotation_id))
                     if not markdown:
                         errors.append(f"annotation {annotation_id} block not found in {source_path}")
             except ValueError as error:
                 errors.append(f"annotation {annotation_id}: {error}")
         if not str(markdown).strip():
             errors.append(f"annotation {annotation_id} has no Markdown content")
+
+        if block_attrs.get("type"):
+            annotation["type"] = block_attrs["type"]
+
+        if annotation.get("type") == "page-global":
+            if not annotation.get("target") or not isinstance(annotation.get("target"), dict):
+                annotation["target"] = {"selector": "", "fallbackSelectors": []}
+            else:
+                annotation["target"]["selector"] = ""
+
+        selector = annotation.get("target", {}).get("selector", "").strip()
+        if not selector and annotation.get("type") != "page-global":
+            errors.append(f"{config_path}: annotation {annotation_id} is missing target.selector")
 
         source_refs = [str(ref) for ref in annotation.get("sourceRefs", [])]
         for ref in source_refs:

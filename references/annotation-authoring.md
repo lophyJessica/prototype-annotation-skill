@@ -33,11 +33,11 @@ Examples:
 docs/prd.md
 docs/annotations/
 
-requirements/product-management/prd.md
-requirements/product-management/annotations/
+requirements/module-management/prd.md
+requirements/module-management/annotations/
 
-prd/product-list.md
-prd/annotations/product-list.md
+prd/record-list.md
+prd/annotations/record-list.md
 ```
 
 Use this selected directory for page Markdown, source mappings, and optional coverage output.
@@ -48,8 +48,8 @@ Recommended minimal structure:
 annotations/
   coverage.md
   pages/
-    product-list.md
-    product-create.md
+    record-list.md
+    record-create.md
 ```
 
 Create `changelog.md` or `versions/` only when the user explicitly needs recoverable snapshots, audit comparison, or release-by-release archives.
@@ -93,8 +93,8 @@ Use a compact table with only PRD-confirmed columns that matter to implementatio
 
 | 字段 | 必填/可编辑 | 核心约束 |
 | --- | --- | --- |
-| 采购数量 | 必填；审核后只读 | 正整数，1-9,999,999 |
-| 单价（含税） | 必填；审核后只读 | 大于等于0，最多2位小数 |
+| 数量 | 必填；审核后只读 | 正整数，按当前项目字段清单定义范围 |
+| 单价 | 必填；审核后只读 | 大于等于0，按当前项目字段清单定义精度 |
 
 - Include `默认值` only when the PRD defines one.
 - Include validation timing and error copy only when the PRD defines them or they materially change the handling path.
@@ -121,10 +121,10 @@ Treat established design-system behavior as implicit. Annotate a component only 
 Use this structure unless the target project already has a stronger convention:
 
 ```md
-<!-- anno:start id=1 page=/products target=product-table -->
-## 需求描述：【商品列表与行操作】
+<!-- anno:start id=1 page=/records target=module-table -->
+## 需求描述：【本模块列表与行操作】
 
-> 来源：商品管理PRD.md#商品查询、商品管理_Demo_列表页.md#表格与行操作
+> 来源：本模块PRD.md#查询规则、本模块Demo列表页.md#表格与行操作
 
 ### 业务定义
 - ...
@@ -153,10 +153,10 @@ Declare stable source requirements in `annotation.config.json`, then map each an
 ```json
 {
   "sourceRequirements": [
-    { "id": "REQ-PRODUCT-001", "source": "../business-prd.md#商品查询", "page": "/products" }
+    { "id": "REQ-MODULE-001", "source": "../business-prd.md#查询规则", "page": "/records" }
   ],
   "annotations": [
-    { "id": "1", "sourceRefs": ["REQ-PRODUCT-001"] }
+    { "id": "1", "sourceRefs": ["REQ-MODULE-001"] }
   ]
 }
 ```
@@ -181,10 +181,10 @@ Example:
 ````md
 ```mermaid
 flowchart TD
-  A["点击保存商品"] --> B{"必填校验通过？"}
+  A["点击保存"] --> B{"必填校验通过？"}
   B -- 否 --> C["滚动到第一个错误字段"]
   B -- 是 --> D["提交保存接口"]
-  D --> E["返回商品列表"]
+  D --> E["返回列表"]
 ```
 ````
 
@@ -197,12 +197,12 @@ Config mapping:
 ```json
 {
   "id": "1",
-  "page": "/products",
-  "moduleName": "商品列表与行操作",
+  "page": "/records",
+  "moduleName": "本模块列表与行操作",
   "target": {
-    "selector": "[data-anno='product-table']"
+    "selector": "[data-anno='module-table']"
   },
-  "markdownFile": "annotations/pages/product-list.md",
+  "markdownFile": "annotations/pages/record-list.md",
   "blockId": "1"
 }
 ```
@@ -235,7 +235,7 @@ Create `changelog.md` inside the selected annotation directory only when the use
 ```md
 ## 2026-07-05
 
-- Added `A2`: clarified barcode uniqueness behavior on product create form.
+- Added `A2`: clarified identifier uniqueness behavior on the create form.
 - Updated `3`: added low-stock orange status rule.
 - Removed `A1`: obsolete import button note after UI removal.
 ```
@@ -257,8 +257,8 @@ Use this shape for richer entries:
 
 | 类型 | 标注 | 页面/模块 | 变更说明 |
 | --- | --- | --- | --- |
-| Updated | `3` | 商品列表与行操作 | 补充低库存橙色状态和停用二次确认规则 |
-| Added | `A2` | 条码字段 | 新增条码唯一性校验的补充标注 |
+| Updated | `3` | 本模块列表与行操作 | 补充特殊状态和二次确认规则 |
+| Added | `A2` | 编号字段 | 新增唯一性校验的补充标注 |
 ```
 
 ## Snapshot Rules
@@ -273,8 +273,8 @@ annotations/
     2026-07-05_1530/
       index.md
       pages/
-        product-list.md
-        product-create.md
+        record-list.md
+        record-create.md
 ```
 
 Snapshots should copy annotation Markdown outputs, not business PRDs or runtime files.

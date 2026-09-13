@@ -40,9 +40,8 @@
           "moduleName": { "type": "string", "minLength": 1 },
           "target": {
             "type": "object",
-            "required": ["selector"],
             "properties": {
-              "selector": { "type": "string", "minLength": 1 },
+              "selector": { "type": "string" },
               "fallbackSelectors": { "type": "array", "items": { "type": "string" } },
               "activationHint": { "type": "string" }
             }

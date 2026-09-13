@@ -13,14 +13,33 @@ Treat annotations as an external explanation layer, not as business UI. Keep the
 
 Annotations are read by **business stakeholders and reviewers**, not developers. Write in business language, not technical language:
 
-- **Page identification**: use breadcrumb path (e.g. "线索管理/线索列表"), NOT URL/route (e.g. `/leads`).
-- **Status / enum values**: use Chinese business names as primary text (待分配/跟进中/已转客户/已作废), English enum (PENDING_ASSIGN etc.) only in parentheses for developer cross-reference — never as the main description.
-- **Tabs / filters**: use Chinese names (全部/待分配/我的线索/公海/已转客户/已作废).
+- **Page identification**: use the project's breadcrumb or page name (e.g. "本模块/列表页"), NOT URL/route (e.g. `/records`).
+- **Status / enum values**: use the project's Chinese business names as primary text (草稿/处理中/已完成/已关闭), English enum only in parentheses for developer cross-reference — never as the main description.
+- **Tabs / filters**: use the project's visible Chinese names (全部/待处理/我的/已归档).
 - **Rules**: business language ("分配后48小时未首次跟进自动回收，回退待分配"), NOT code logic.
-- **Fields**: use Chinese labels (线索名称/手机号), not field names (leadName/phone).
+- **Fields**: use visible Chinese labels (名称/负责人/状态), not internal field names (recordName/ownerId).
 - **Audience**: business reviewers — developers look up English enums in the PRD; annotations do not carry developer-facing references.
 
 Annotation blocks whose main descriptions are English enums or technical routes are non-compliant and must be rewritten.
+
+## v2 标注层级与约束
+
+把实现信息按三层组织，避免用一个角标承载所有内容：
+
+1. **字段级**：单个字段的已确认必填、格式、范围、精度、默认值、唯一性和校验时机。
+2. **区域级**：同一表单区域或功能区域的联动、条件必填、共同校验和区域级结果；表单“基本信息”通常合并为一个 `field` 块，不逐字段拆分普通字段。
+3. **整页级**：跨区域的页面准入、保存/提交防重复、未保存离开拦截、失败重试、页面状态和返回行为；使用 `type=page-global`，不挂元素 selector，也不把整页规则硬挂到按钮角标。
+
+区域级聚合不等于删字段：字段说明仍应完整保留，优先用四列表格 `字段 | 展示/输入类型 | 业务说明 | 约束与备注`。字段事实以字段清单为准，跨字段规则以 PRD 为准，页面交互以 Demo 规格为准；三者冲突或缺失时写入“待确认”评审记录。
+
+字段说明示例：
+
+| 字段 | 展示/输入类型 | 业务说明 | 约束与备注 |
+| --- | --- | --- | --- |
+| 名称 | 文本 | 记录本页面对象的显示名称 | 必填性、长度和唯一性以字段清单为准 |
+| 状态 | 标签/只读 | 展示当前业务状态 | 状态变更通过页面动作触发 |
+
+`page-global` 条目必须在配置中保留页面路径和 Markdown block 映射，但 `target` 不提供有效 CSS selector。编译器会为其生成空 target，runtime 将徽章定位到通用页面顶部，并通过 `isPageGlobal` 处理定位和跳转。
 
 ## Annotation Classification & Panel UI Standard (Mandatory)
 
@@ -28,6 +47,7 @@ Annotations are displayed in a **panel UI** (like Axure's annotation sidebar), n
 
 ### 1. Type Classification (each annotation block must have one)
 - `page` 页面: page-level description (page path, layout overview, global behavior)
+- `page-global` 本页规则: whole-page rules without an element selector
 - `interaction` 交互: click behavior, tab switching, state transitions, expand/collapse
 - `rule` 规则: business rules, validation, permissions, exceptions
 - `field` 字段: field-level description (Chinese labels, constraints, defaults)
@@ -121,12 +141,12 @@ The 待确认 tab is NOT extracted from the PRD — it is a **human-entered revi
 - **Global export grouping**: the global "导出待办" must group issues by annotation block, prefixed with 序号（标题）:
   ```
   ## 待办项
-  ### 序号 1（线索列表页面）
+  ### 序号 1（本模块列表页面）
   - [ ] 问题描述
     - 解决方法：（待补充）
   - [x] 已解决问题
     - 解决方法：...
-  ### 序号 2（状态页签与线索池视图）
+  ### 序号 2（状态页签与列表视图）
   - [ ] ...
   ```
   Group header uses the annotation badge number + block title, so reviewers can trace which region each todo belongs to.
@@ -194,7 +214,7 @@ Each annotation block's **detail content** must be organized into **tab pages** 
 - `全部` = combined rendering of all populated tabs (页面内容+交互说明+业务规则+字段说明+待确认)
 - Content under each tab uses the grouped item-list format (`分组标题` + `- 项名：描述`) from Annotation Content Structure Standard
 - Each tab's content must be accurate to the PRD: 交互说明 covers click/state behaviors, 业务规则 covers validation/permissions/exceptions, 字段说明 covers field-level rules
-- Tab filter (`type` classification) remains: page/interaction/rule/field/pending — the detail tabs provide richer in-block organization
+- Tab filter (`type` classification) remains: page/page-global/interaction/rule/field/pending; `page-global` is grouped in the 页面 tab while retaining its distinct runtime type.
 
 Maintain one current annotation set for the current prototype. Update Markdown blocks in place; the runtime must display only the latest rules. Do not create or maintain changelogs, version folders, or historical annotation copies unless the user explicitly asks for them. Keep a readable `来源` line in each Markdown block and retain `sourceRefs` in configuration so current annotations can point back to the current PRD files and sections.
 
@@ -238,7 +258,7 @@ Choose the annotation document directory in this order:
 2. If existing annotation Markdown files are found, keep using that directory.
 3. If a main business PRD is found, create an `annotations/` folder beside that PRD.
    - Example: `docs/prd.md` -> `docs/annotations/`
-   - Example: `requirements/product/prd.md` -> `requirements/product/annotations/`
+   - Example: `requirements/module/prd.md` -> `requirements/module/annotations/`
 4. If multiple PRDs exist, keep each module's annotation source beside its relevant PRD. Add one `annotation.workspace.json` at their nearest practical common annotation parent to aggregate compilation; do not move all module files into one directory merely to share a runtime.
 5. If no PRD location is discoverable, create `annotations/` at the target project root and state this fallback in the final response.
 
@@ -300,7 +320,7 @@ Support Mermaid as optional Markdown enhancement:
 4. Aggregate requirements by UI module.
    - One closely related module gets one annotation badge.
    - Filter bars, table operations, tabs, forms, modals, drawers, field groups, and batch tools are typical modules.
-   - Add one page-global badge only when cross-field rules would otherwise be scattered across field groups; do not add it to ordinary display-only pages.
+   - Add one page-global badge when cross-field or cross-region page rules would otherwise be scattered across field groups, such as page access, duplicate-submit protection, unsaved-leave handling, or page-level failure retry; do not add it to a simple display-only page with no sourced page rule.
 5. Write separate annotation Markdown files.
    - Store them in the selected annotation directory from "Annotation Directory Decision".
    - Add stable source requirement ids and map them through each annotation's `sourceRefs`.
@@ -347,7 +367,7 @@ Use stable ids rather than implying priority:
 - Supplemental annotations: `A1`, `A2`, `A3`.
 - Nested additions under a known module: `1a`, `1b` only when the user wants explicit relationship to an existing module.
 
-Display ids are local to a module. The compiler creates the runtime key as `scope:id`, so `product:1` and `purchase:1` may coexist while both page badges display `1`. View-all and exported documents use `scope:id` to remain unambiguous.
+Display ids are local to a module. The compiler creates the runtime key as `scope:id`, so `module-a:1` and `module-b:1` may coexist while both page badges display `1`. View-all and exported documents use `scope:id` to remain unambiguous.
 
 When exporting all annotations, sort by page order first, then DOM order, then id.
 
@@ -361,7 +381,7 @@ Use selector priority:
 4. Stable class selector
 5. Generated CSS path as a temporary fallback
 
-If no selector is stable, add one `data-anno` to the module root. Keep the attribute descriptive, such as `data-anno="product-filter-bar"`.
+If no selector is stable, add one `data-anno` to the module root. Keep the attribute descriptive, such as `data-anno="module-filter-bar"`.
 
 Read `references/integration-patterns.md` before modifying a new project type. Read `references/annotation-authoring.md` before generating or updating annotation content. Read `references/collaboration-deployment.md` before implementing local/cloud collaboration.
 
@@ -373,8 +393,29 @@ Read `references/integration-patterns.md` before modifying a new project type. R
 - `assets/annotation-kit/annotation.schema.json`: config schema.
 - `assets/annotation-kit/annotation.workspace.json`: multi-module compilation manifest template.
 - `assets/annotation-kit/annotation.workspace.schema.json`: workspace manifest schema.
+- `references/annotation-scope.md`: boundary decisions for what to annotate and what to leave to the prototype.
 - `scripts/compile_annotations.py`: validates source coverage and compiles a deployable read-only bundle.
 - `scripts/install_annotation_kit.py`: copies runtime assets into a target project and can inject script/link tags into HTML entries.
+- `scripts/check_annotation_assets.py`: validates a compiled annotation-kit dir (bundle completeness, per-page unique ids, compiled-in markdown, target selectors, coverage) — no network/third-party deps.
+
+## Tooling Verification (three-step, deliverable gate)
+
+Working toolchain (compile -> check -> bundle) is NOT the deliverable. "Page actually shows badges" is the core value. Every delivery must show real evidence for all three:
+
+1. **Scope judgement** — apply `references/annotation-scope.md`; output "N to annotate / M not, with reasons".
+2. **Compile and asset check** — run `compile_annotations.py` first, then `python3 scripts/check_annotation_assets.py <annotation-kit dir>` and paste both REAL outputs (not "script added").
+3. **Browser run** — open the page, confirm badges render, click shows content, no JS errors.
+
+Annotation source stays PRD Markdown; field-fact constraints come from the TSV, business-level rules from the PRD. A scope/check that passes without a visible result does not conclude the task.
+
+## 四层校验走查
+
+每次 v2 交付都按四层检查并记录证据：
+
+1. **来源层**：标注内容可追溯到 PRD、字段清单或明确的评审记录，不带入其他项目的事实。
+2. **结构层**：页面 block id 独立连续，区域级/`page-global` 类型正确，字段表格列完整，`sourceRefs` 覆盖 source requirements。
+3. **资产层**：编译产物内联 Markdown，target 结构完整，页面内 id 不重复，coverage 无未映射项；表格表头和数据行计入数量，分隔行不计入。
+4. **运行层**：浏览器中确认 route、徽章、面板、六个详情 Tab、表格渲染、定位、滚动和只读边界；记录 JS 控制台无错误。
 
 ## Validation Checklist
 

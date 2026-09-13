@@ -3,13 +3,13 @@
   "title": "Prototype Annotations",
   "inputs": [
     {
-      "scope": "product",
-      "config": "./product/annotation.config.json",
+      "scope": "module-a",
+      "config": "./module-a/annotation.config.json",
       "order": 1
     },
     {
-      "scope": "purchase",
-      "config": "./purchase/annotation.config.json",
+      "scope": "module-b",
+      "config": "./module-b/annotation.config.json",
       "order": 2
     }
   ],

@@ -1,4 +1,4 @@
-# Prototype Annotation Skill
+# Prototype Annotation Skill v2
 
 面向已有 React / Vue / 静态 HTML 原型的业务原型标注 Skill。
 
@@ -27,18 +27,20 @@ PRD / 业务规则
 SKILL.md
 agents/                         Agent 配置
 assets/annotation-kit/          runtime、样式、schema 和配置模板
-references/                     标注编写、集成与交付参考
-scripts/                        标注编译和 kit 安装脚本
+references/                     标注编写、范围判断、集成与交付参考
+scripts/                        编译、资源校验和 kit 安装脚本
 tests/                          编译脚本测试
 ```
 
 ## 核心工作流
 
 ```text
-读取 PRD 与页面代码
+读取 PRD、字段清单与页面代码
 → 识别页面功能点
-→ 生成结构化标注
+→ 判断该标/不该标
+→ 生成区域级与整页级结构化标注
 → 编译 annotation bundle
+→ 自动校验 bundle 完整性与 coverage
 → 注入 annotation runtime
 → 启动原型验证
 → 浏览器验收徽章、面板和定位
@@ -48,12 +50,16 @@ tests/                          编译脚本测试
 
 - 标注面向业务方和评审者，优先使用业务语言；
 - 标注内容必须来自 PRD 或明确标记为“待确认”，不脑补业务规则；
-- 标注按功能点拆分，不把整页压成一大块说明；
+- 普通表单字段按“基本信息”等区域聚合，不逐字段制造角标；
+- 页面级通用规则使用无元素锚点的 `page-global`，集中记录防重提交、未保存离开、页面准入和失败重试；
 - 每个标注块按页面内容、交互说明、业务规则、字段说明、待确认组织；
+- 字段说明优先使用四列表格：字段、展示/输入类型、业务说明、约束与备注；
+- 约束按字段级、区域级、整页级三层组织；
 - 原型标注入口必须先显示区域序号，点击序号后再查看详情；
 - 页面滚动、Tab 状态和待确认问题需要保持；
 - 标注 runtime、bundle 与页面 `data-anno` 锚点必须同时存在并能命中；
 - 每个页面的标注编号独立从 1 开始；
+- 待确认是评审问题记录，不是从 PRD 自动抽取的内容；
 - 只读审阅原型，不用标注 runtime 改变业务功能。
 
 ## 使用前提
@@ -74,8 +80,8 @@ tests/                          编译脚本测试
 
 下载 Skill 后不会自动得到：
 
-- Forge CRM/WMS/ERP 的页面；
-- 我们项目里的 PRD 和业务规则；
+- 某个具体项目的页面；
+- 任意特定项目的 PRD 和业务规则；
 - 已经编译好的你自己项目的 annotation bundle；
 - 自动适配你项目的页面锚点；
 - 可直接访问的完整标注原型。
@@ -87,8 +93,9 @@ tests/                          编译脚本测试
 → 下载本 Skill
 → 按项目结构完成初始化和适配
 → 给自己的页面增加 data-anno 或稳定选择器
-→ 根据自己的 PRD 编写标注
+→ 根据自己的 PRD 和字段清单编写标注
 → 编译 bundle
+→ 运行 check_annotation_assets.py
 → 在自己的原型中验收
 ```
 
@@ -119,9 +126,9 @@ python prototype-annotation/scripts/compile_annotations.py
 
 这个仓库只提供通用原型标注能力，不包含：
 
-- Forge CRM/WMS/ERP 的业务源码；
-- 任何真实项目的 PRD；
-- 飞书、GitHub、VPS 或其他服务的密钥；
+- 任何特定项目的业务源码；
+- 任何真实项目的 PRD、字段数据或审计材料；
+- 任何外部服务的密钥；
 - 特定项目的部署凭据；
 - 真实业务数据库或后端服务。
 
