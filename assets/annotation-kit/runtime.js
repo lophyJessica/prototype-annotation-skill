@@ -195,8 +195,15 @@ function parseAnnotationTabs(markdown) {
 
 function countMarkdownItems(markdown) {
   const source = String(markdown || '');
-  const listItems = (source.match(/^\s*(?:[-+*]|\d+\.)\s+/gm) || []).length;
-  const tableRows = (source.match(/^\s*\|(?!(?:\s*:?-{3,}:?\s*\|)+\s*$).+/gm) || []).length;
+  const lines = source.split('\n');
+  const isSep = (line) => /^\s*\|(?:[ \t]*:?-{3,}:?[ \t]*\|)+\s*$/.test(line);
+  const isBar = (line) => /^\s*\|/.test(line) && !isSep(line);
+  let listItems = 0, tableRows = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^\s*(?:[-+*]|\d+\.)\s+/.test(line)) listItems++;
+    else if (isBar(line) && !isSep(lines[i + 1] || '')) tableRows++;
+  }
   return listItems + tableRows;
 }
 
